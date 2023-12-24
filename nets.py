@@ -94,7 +94,7 @@ class UtilityDecoder(nn.Module):
         x = self.fc1(x)
         x = self.bn1(x)
         x = F.leaky_relu(x, negative_slope=0.2)
-        x = F.softmax(self.fc2(x), dim=1)  # 使用 softmax 作为最后一层的激活函数
+        x = F.softmax(self.fc2(x), dim=1)
         return x
 
 # uncertainty decoder, p_xi(x|s,z)
