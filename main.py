@@ -4,6 +4,9 @@ from dataset import train_loader, test_loader
 from model import CLUB
 import time
 from layer_utils import reparameterize, utility_loss, rec_loss, wce_loss, kl_div_for_gaussian
+from s_evaluator import S_Evaluator
+import os
+import optim
 
 # hyperparams
 lr = config_dict['lr']
@@ -109,9 +112,70 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
                   f"Util Disc Loss: {total_loss_5:.4f}")
 
 # test
-def test():
-    # TODO
-    return
+def test(model, test_loader):
+    model.eval()
+
+    with torch.no_grad():
+        total_utility_accuracy = 0
+        total_sensitivity_accuracy = 0
+
+        for x, u, s in test_loader:
+            z_test = model.encoder(x)
+            x_hat = model.uncertainty_decoder(z_test, s)
+            u_hat = model.utility_decoder(z_test)
+
+            # TODO
+            # utility
+
+            # sensitivity
+            # train s evaluator
+            s_evaluator = S_Evaluator(dim_img, dim_s)
+            train_s_evaluator(s_evaluator, train_loader, test_loader, dim_img, dim_s)
+
+            # cal sensitivity acc
+
+            # cal sensitivity mae
+
+            # mutual information
+
+
+        return
+
+def train_s_evaluator(model, train_loader, test_loader, dim_img, dim_s):
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    criterion = torch.nn.MSELoss()
+
+    model_path = f"saved_models/mnist_eval_model_s.pth"
+    force_train = False
+
+    if not os.path.exists(model_path) or force_train:
+        print("Training sensitive attribute evaluator")
+        model.train()
+        for epoch in range(100):
+            for x_batch, s_batch in train_loader:
+                optimizer.zero_grad()
+                outputs = model(x_batch)
+                loss = criterion(outputs, s_batch)
+                loss.backward()
+                optimizer.step()
+
+        torch.save(model.state_dict(), model_path)
+    else:
+        print("Loading sensitive attribute evaluator from file")
+        model.load_state_dict(torch.load(model_path))
+
+    # Evaluating the model on the test set
+    model.eval()
+    with torch.no_grad():
+        total_accuracy = 0
+        for x_batch, _, s_batch in test_loader:
+            s_hat_test = model(x_batch)
+            evaluator_accuracy = (torch.argmax(s_hat_test, dim=-1) == s_batch).float().mean().item()
+            total_accuracy += evaluator_accuracy
+        average_accuracy = total_accuracy / len(test_loader)
+        print(f"Evaluator accuracy = {average_accuracy * 100}")
+
+
 
 
 if __name__ == '__main__':
@@ -129,4 +193,4 @@ if __name__ == '__main__':
           optimizer_prior_generator, optimizer_z_discriminator, optimizer_utility_discriminator)
 
     # test
-    test()
+    test(model, test_loader)
