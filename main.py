@@ -138,6 +138,8 @@ def test(model, test_loader):
 
             # mutual information
 
+            # save imgs
+
 
         return
 

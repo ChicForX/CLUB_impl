@@ -1,4 +1,7 @@
 import torch
+import torchvision.utils
+import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
 
 
 # evaluation
@@ -23,3 +26,13 @@ def cal_sens_mae():
 
 # mutual information between s and z
 
+# save img by 5*5
+def save_images(x_hat, filename, nrow=5, ncol=5):
+    x_hat = x_hat[:nrow * ncol]
+
+    x_hat = x_hat.cpu().detach()
+    grid = torchvision.utils.make_grid(x_hat, nrow=nrow)
+
+    ndarr = grid.mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
+    im = transforms.ToPILImage()(ndarr)
+    im.save(filename)
