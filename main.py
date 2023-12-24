@@ -3,6 +3,7 @@ from config import config_dict
 from dataset import train_loader, val_loader
 from model import CLUB
 import time
+from layer_utils import utility_loss, rec_loss, wce_loss
 
 # hyperparams
 lr = config_dict['lr']
@@ -19,11 +20,10 @@ def train():
     start_time = time.time()
     for epoch in range(epochs):
         start_time_epoch = time.time()
-        for imgs in train_loader:
-            # TODO
-
+        for x, u, s in train_loader: # imgs, class, colors
+            ################  Training consists of 5 steps  ##################
             # 1. train encoder, utility decoder & uncertainty decoder
-
+            
             # 2. train z discriminator
 
             # 3. train encoder & prior generator adversarially
