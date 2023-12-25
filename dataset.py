@@ -8,8 +8,8 @@ transform = transforms.Compose([
 ])
 
 # MNIST
-train_data = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-test_data = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+train_data = datasets.MNIST(root='./data/MNIST/train', train=True, download=True, transform=transform)
+test_data = datasets.MNIST(root='./data/MNIST/test', train=False, download=True, transform=transform)
 
 train_images = train_data.data.numpy()
 test_images = test_data.data.numpy()

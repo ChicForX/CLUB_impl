@@ -7,6 +7,7 @@ from layer_utils import reparameterize, utility_loss, rec_loss, wce_loss, kl_div
 from s_evaluator import S_Evaluator
 import os
 import optim
+from pretrain import pre_train_model
 
 # hyperparams
 lr = config_dict['lr']
@@ -19,6 +20,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 epochs = config_dict['epochs']
 alpha = config_dict['alpha']
 beta = config_dict['beta']
+pretrain_epoch = config_dict['pretrain_epoch']
+lr_pretrain = config_dict['lr_pretrain']
 
 # train
 def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncertainty_decoder,
@@ -140,8 +143,12 @@ def test(model, test_loader):
 
             # save imgs
 
+        avg_utility_accuracy = total_utility_accuracy / len(test_loader)
+        avg_sensitivity_accuracy = total_sensitivity_accuracy / len(test_loader)
 
-        return
+        print(f"Utility Accuracy: {avg_utility_accuracy}")
+        print(f"Sensitivity Accuracy: {avg_sensitivity_accuracy}")
+
 
 def train_s_evaluator(model, train_loader, test_loader, dim_img, dim_s):
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -183,6 +190,9 @@ def train_s_evaluator(model, train_loader, test_loader, dim_img, dim_s):
 if __name__ == '__main__':
     # init
     model = CLUB(dim_z, dim_u, dim_noise, dim_img)
+    pre_train_model(model, train_loader, dim_z, alpha, beta, pretrain_epoch, lr_pretrain)
+
+    # init optimizers for training
     optimizer_encoder = torch.optim.Adam(model.encoder.parameters(), lr=lr)
     optimizer_utility_decoder = torch.optim.Adam(model.utility_decoder.parameters(), lr=lr)
     optimizer_uncertainty_decoder = torch.optim.Adam(model.uncertainty_decoder.parameters(), lr=lr)

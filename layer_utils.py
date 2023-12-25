@@ -31,3 +31,4 @@ def kl_div_for_gaussian(z_mean, z_log_sigma_sq):
     kl_div = -0.5 * torch.sum(1 + z_log_sigma_sq - z_mean.pow(2) - z_log_sigma_sq.exp(), dim=1)
     return kl_div.mean()
 
+
