@@ -6,8 +6,9 @@ import time
 from layer_utils import reparameterize, utility_loss, rec_loss, wce_loss, kl_div_for_gaussian
 from s_evaluator import S_Evaluator
 import os
-import optim
 from pretrain import pre_train_model
+import eval_utils as eval
+from mine import MINE
 
 # hyperparams
 lr = config_dict['lr']
@@ -22,6 +23,9 @@ alpha = config_dict['alpha']
 beta = config_dict['beta']
 pretrain_epoch = config_dict['pretrain_epoch']
 lr_pretrain = config_dict['lr_pretrain']
+eval_path = config_dict['eval_path']
+mi_epochs = config_dict['mi_epochs']
+
 
 # train
 def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncertainty_decoder,
@@ -114,77 +118,63 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
                   f"Prior Gen Loss: {total_loss_4:.4f}, "
                   f"Util Disc Loss: {total_loss_5:.4f}")
 
+
 # test
 def test(model, test_loader):
     model.eval()
 
+    # train s evaluator
+    s_evaluator = S_Evaluator(dim_img, dim_s)
+    eval.train_s_evaluator(s_evaluator, train_loader, test_loader, dim_img, dim_s)
+
+    # train MINE
+    mine = MINE(dim_z, dim_u)
+    eval.train_mine(model, mine, test_loader, mi_epochs)
+
     with torch.no_grad():
-        total_utility_accuracy = 0
-        total_sensitivity_accuracy = 0
+        total_utility_acc = 0
+        total_sensitivity_acc = 0
+        total_sens_mae = 0
+        total_mi_u_z = 0
+        total_mi_s_z = 0
 
         for x, u, s in test_loader:
             z_test = model.encoder(x)
             x_hat = model.uncertainty_decoder(z_test, s)
             u_hat = model.utility_decoder(z_test)
 
-            # TODO
-            # utility
+            # utility accuracy
+            total_utility_acc += eval.cal_accuracy(u_hat, u)
 
             # sensitivity
-            # train s evaluator
-            s_evaluator = S_Evaluator(dim_img, dim_s)
-            train_s_evaluator(s_evaluator, train_loader, test_loader, dim_img, dim_s)
-
+            s_hat = s_evaluator(x_hat)
             # cal sensitivity acc
-
+            total_sensitivity_acc += eval.cal_sens_acc(s_hat, s)
             # cal sensitivity mae
+            total_sens_mae += eval.cal_sens_mae(s_hat, s)
 
             # mutual information
-
-            # save imgs
-
-        avg_utility_accuracy = total_utility_accuracy / len(test_loader)
-        avg_sensitivity_accuracy = total_sensitivity_accuracy / len(test_loader)
-
-        print(f"Utility Accuracy: {avg_utility_accuracy}")
-        print(f"Sensitivity Accuracy: {avg_sensitivity_accuracy}")
+            # s & z
+            total_mi_s_z += mine(z_test, s).mean().item()
+            # u & z
+            total_mi_u_z += mine(z_test, u).mean().item()
 
 
-def train_s_evaluator(model, train_loader, test_loader, dim_img, dim_s):
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    criterion = torch.nn.MSELoss()
+        # save imgs
+        filename = f"{eval_path}_output.png"
+        eval.save_images(x_hat, filename)
 
-    model_path = f"saved_models/mnist_eval_model_s.pth"
-    force_train = False
+        avg_utility_acc = total_utility_acc / len(test_loader)
+        avg_sensitivity_acc = total_sensitivity_acc / len(test_loader)
+        avg_sensitivity_mae = total_sens_mae / len(test_loader)
+        avg_mi_s_z = total_mi_s_z / len(test_loader)
+        avg_mi_u_z = total_mi_u_z / len(test_loader)
 
-    if not os.path.exists(model_path) or force_train:
-        print("Training sensitive attribute evaluator")
-        model.train()
-        for epoch in range(100):
-            for x_batch, s_batch in train_loader:
-                optimizer.zero_grad()
-                outputs = model(x_batch)
-                loss = criterion(outputs, s_batch)
-                loss.backward()
-                optimizer.step()
-
-        torch.save(model.state_dict(), model_path)
-    else:
-        print("Loading sensitive attribute evaluator from file")
-        model.load_state_dict(torch.load(model_path))
-
-    # Evaluating the model on the test set
-    model.eval()
-    with torch.no_grad():
-        total_accuracy = 0
-        for x_batch, _, s_batch in test_loader:
-            s_hat_test = model(x_batch)
-            evaluator_accuracy = (torch.argmax(s_hat_test, dim=-1) == s_batch).float().mean().item()
-            total_accuracy += evaluator_accuracy
-        average_accuracy = total_accuracy / len(test_loader)
-        print(f"Evaluator accuracy = {average_accuracy * 100}")
-
-
+        print(f"Utility Accuracy: {avg_utility_acc}")
+        print(f"Sensitivity Accuracy: {avg_sensitivity_acc}")
+        print(f"Mean Absolote Error: {avg_sensitivity_mae}")
+        print(f"Mutual Information of s & z: {avg_mi_s_z}")
+        print(f"Mutual Information of u & z: {avg_mi_u_z}")
 
 
 if __name__ == '__main__':

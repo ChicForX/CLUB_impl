@@ -9,5 +9,7 @@ config_dict = {
     "alpha": 1.0,
     "beta": 1.0,
     "pretrain_epoch": 20,
-    "lr_pretrain": 1e-3
+    "lr_pretrain": 1e-3,
+    "eval_path": "./eval_figures",
+    "mi_epochs": 20
 }
