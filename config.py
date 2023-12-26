@@ -1,7 +1,7 @@
 config_dict = {
     "lr": 1e-3,
     "dim_img": 28,
-    "dim_noise": 50,
+    "dim_noise": 30,
     "dim_s": 1,
     "dim_z": 20,
     "dim_u": 10,

@@ -58,7 +58,7 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
             # -------------------- 2. train z discriminator ------------------#
             optimizer_z_discriminator.zero_grad()
 
-            noise = torch.randn(batch_size, dim_noise).to(device)
+            noise = torch.randn(x.size(0), dim_noise).to(device)
             z_hat = model.prior_generator(noise)
             z_mean, z_log_sigma_sq = model.encoder(x)
             z = reparameterize(z_mean, z_log_sigma_sq)

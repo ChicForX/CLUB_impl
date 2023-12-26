@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 # prior generator, g_psi(Normal)
 class PriorGenerator(nn.Module):
-    def __init__(self, DIM_Z, noise_dim=50):
+    def __init__(self, DIM_Z, noise_dim=30):
         super(PriorGenerator, self).__init__()
         self.fc1 = nn.Linear(noise_dim, noise_dim*2)
         self.bn1 = nn.BatchNorm1d(noise_dim*2)
@@ -24,13 +24,15 @@ class PriorGenerator(nn.Module):
 class ZDiscriminator(nn.Module):
     def __init__(self, DIM_Z):
         super(ZDiscriminator, self).__init__()
-        self.fc1 = nn.Linear(DIM_Z, 512)
-        self.fc2 = nn.Linear(512, 128)
-        self.fc3 = nn.Linear(128, 1)
+        self.fc1 = nn.Linear(DIM_Z, 128)
+        self.bn1 = nn.BatchNorm1d(128)
+        self.fc2 = nn.Linear(128, 32)
+        self.bn2 = nn.BatchNorm1d(32)
+        self.fc3 = nn.Linear(32, 1)
 
     def forward(self, x):
-        x = nn.LeakyReLU(0.2)(self.fc1(x))
-        x = nn.LeakyReLU(0.2)(self.fc2(x))
+        x = F.leaky_relu(self.bn1(self.fc1(x)), 0.2)
+        x = F.leaky_relu(self.bn2(self.fc2(x)), 0.2)
         x = torch.sigmoid(self.fc3(x))
         return x
 
