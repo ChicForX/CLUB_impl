@@ -11,8 +11,9 @@ def reparameterize(mu, logvar):
 
 # cal loss
 # mse
-def utility_loss(label_true, label_pred):
-    return F.mse_loss(label_pred, label_true, reduction='mean')
+def utility_loss(y_pred_logits, y):
+    criterion = torch.nn.CrossEntropyLoss()
+    return criterion(y_pred_logits, y)
 
 
 #reconstrucion loss

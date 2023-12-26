@@ -2,13 +2,12 @@ import torch
 import os
 import torch.optim as optim
 import torch.nn as nn
-from layer_utils import kl_div_for_gaussian
+from layer_utils import kl_div_for_gaussian, utility_loss
 
 
 def pre_train_model(model, train_loader, dim_z, alpha, beta, device, pretrain_epoch=20, learning_rate=0.001):
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     reconstruction_criterion = nn.MSELoss()
-    utility_criterion = nn.CrossEntropyLoss()
 
     info_str = f"d_{dim_z}_beta_{beta}_alpha_{alpha}"
     model_path = f"saved_models/club_pretrain_{info_str}.pth"
@@ -26,10 +25,10 @@ def pre_train_model(model, train_loader, dim_z, alpha, beta, device, pretrain_ep
                 x_hat = model.uncertainty_decoder(z_mean, s_batch)
 
                 reconstruction_loss = reconstruction_criterion(x_hat, x_batch)
-                utility_loss = utility_criterion(u_hat, u_batch)
+                u_loss = utility_loss(u_hat, u_batch)
                 kl_loss = kl_div_for_gaussian(z_mean, z_log_sigma_sq)
 
-                total_loss = reconstruction_loss + utility_loss + alpha * kl_loss
+                total_loss = reconstruction_loss + u_loss + alpha * kl_loss
 
                 total_loss.backward()
                 optimizer.step()

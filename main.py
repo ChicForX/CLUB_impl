@@ -45,7 +45,7 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
             x_obf = model.uncertainty_decoder(z, s)
 
             reconstruction_loss = rec_loss(x, x_obf)
-            u_loss = utility_loss(u, u_utility)
+            u_loss = utility_loss(u_utility, u)
             kl_loss = kl_div_for_gaussian(z_mean, z_log_sigma_sq)
             total_loss_1 = reconstruction_loss + u_loss + alpha * kl_loss
 
@@ -57,7 +57,7 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
             # -------------------- 2. train z discriminator ------------------#
             optimizer_z_discriminator.zero_grad()
 
-            noise = torch.randn(dim_noise)
+            noise = torch.randn(dim_noise).to(device)
             z_hat = model.prior_generator(noise)
             z_mean, z_log_sigma_sq = model.encoder(x)
             z = reparameterize(z_mean, z_log_sigma_sq)
