@@ -37,6 +37,7 @@ def pre_train_model(model, train_loader, dim_z, alpha, beta, device, pretrain_ep
             if epoch % 10 == 0:
                 print(f"Epoch {epoch}: Loss {total_loss.item()}")
 
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
         torch.save(model.state_dict(), model_path)
     else:
         print(f"Loading model from file with {info_str}")

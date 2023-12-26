@@ -30,7 +30,7 @@ mi_epochs = config_dict['mi_epochs']
 def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncertainty_decoder,
           optimizer_prior_generator, optimizer_z_discriminator, optimizer_utility_discriminator):
     for epoch in range(epochs):
-        for i, (x, u, s) in train_loader:  # imgs, class, colors
+        for i, (x, u, s) in enumerate(train_loader):  # imgs, class, colors
             x, u, s = x.to(device), u.to(device), s.to(device)
 
             # Training consists of 5 steps
