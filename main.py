@@ -1,10 +1,10 @@
 import torch
+import torch.nn.functional as F
 from config import config_dict
 from dataset import train_loader, test_loader
 from model import CLUB
 from layer_utils import reparameterize, utility_loss, rec_loss, wce_loss, kl_div_for_gaussian
 from s_evaluator import S_Evaluator
-import os
 from pretrain import pre_train_model
 import eval_utils as eval
 from mine import MINE
@@ -24,6 +24,7 @@ pretrain_epoch = config_dict['pretrain_epoch']
 lr_pretrain = config_dict['lr_pretrain']
 eval_path = config_dict['eval_path']
 mi_epochs = config_dict['mi_epochs']
+batch_size = config_dict['batch_size']
 
 
 # train
@@ -57,7 +58,7 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
             # -------------------- 2. train z discriminator ------------------#
             optimizer_z_discriminator.zero_grad()
 
-            noise = torch.randn(dim_noise).to(device)
+            noise = torch.randn(batch_size, dim_noise).to(device)
             z_hat = model.prior_generator(noise)
             z_mean, z_log_sigma_sq = model.encoder(x)
             z = reparameterize(z_mean, z_log_sigma_sq)
@@ -91,9 +92,9 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
             z_hat = model.prior_generator(noise)
             u_hat = model.utility_decoder(z_hat)
             d_hat = model.utility_discriminator(u_hat)
-            d = model.utility_discriminator(u)
+            d = model.utility_discriminator(F.one_hot(u, num_classes=10).float())  # batch_size, 10
 
-            total_loss_4 = wce_loss(d_hat, d)
+            total_loss_4 = wce_loss(d_hat, d, alpha+beta)
 
             total_loss_4.backward()
             optimizer_utility_discriminator.step()
@@ -106,7 +107,7 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
             u_hat = model.utility_decoder(z_hat)
             d = model.utility_discriminator(u_hat)
 
-            total_loss_5 = -wce_loss(d, torch.zeros_like(d))  # log(1-D)
+            total_loss_5 = -wce_loss(d, torch.zeros_like(d), alpha+beta)  # log(1-D)
 
             total_loss_5.backward()
             optimizer_prior_generator.step()

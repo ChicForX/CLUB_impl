@@ -22,10 +22,8 @@ def rec_loss(input, output):
 
 
 # weighted binary cross entropy
-def wce_loss(y_pred, y, coef=None):
-    if coef is None:
-        coef = torch.ones_like(y_pred)
-    return F.binary_cross_entropy(y_pred, y, weight=coef, reduction='mean')
+def wce_loss(y_pred, y, weight):
+    return weight * F.binary_cross_entropy(y_pred, y, reduction='mean')
 
 
 # kl divergence between prior(Normal) and encoder

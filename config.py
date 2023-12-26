@@ -11,5 +11,6 @@ config_dict = {
     "pretrain_epoch": 20,
     "lr_pretrain": 1e-3,
     "eval_path": "./eval_figures",
-    "mi_epochs": 20
+    "mi_epochs": 20,
+    "batch_size": 64
 }
