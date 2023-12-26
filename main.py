@@ -2,7 +2,6 @@ import torch
 from config import config_dict
 from dataset import train_loader, test_loader
 from model import CLUB
-import time
 from layer_utils import reparameterize, utility_loss, rec_loss, wce_loss, kl_div_for_gaussian
 from s_evaluator import S_Evaluator
 import os
@@ -32,6 +31,8 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
           optimizer_prior_generator, optimizer_z_discriminator, optimizer_utility_discriminator):
     for epoch in range(epochs):
         for i, (x, u, s) in train_loader:  # imgs, class, colors
+            x, u, s = x.to(device), u.to(device), s.to(device)
+
             # Training consists of 5 steps
             # ----1. train encoder, utility decoder & uncertainty decoder ----#
             optimizer_encoder.zero_grad()
@@ -120,12 +121,12 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
 
 
 # test
-def test(model, test_loader):
+def tst(model, test_loader):
     model.eval()
 
     # train s evaluator
     s_evaluator = S_Evaluator(dim_img, dim_s)
-    eval.train_s_evaluator(s_evaluator, train_loader, test_loader, dim_img, dim_s)
+    eval.train_s_evaluator(s_evaluator, train_loader, test_loader)
 
     # train MINE
     mine = MINE(dim_z, dim_u)
@@ -139,7 +140,9 @@ def test(model, test_loader):
         total_mi_s_z = 0
 
         for x, u, s in test_loader:
-            z_test = model.encoder(x)
+            x, u, s = x.to(device), u.to(device), s.to(device)
+            z_mean, z_log_sigma_sq = model.encoder(x)
+            z_test = reparameterize(z_mean, z_log_sigma_sq)
             x_hat = model.uncertainty_decoder(z_test, s)
             u_hat = model.utility_decoder(z_test)
 
@@ -179,8 +182,9 @@ def test(model, test_loader):
 
 if __name__ == '__main__':
     # init
-    model = CLUB(dim_z, dim_u, dim_noise, dim_img)
-    pre_train_model(model, train_loader, dim_z, alpha, beta, pretrain_epoch, lr_pretrain)
+    model = CLUB(dim_z, dim_u, dim_noise, dim_img, dim_s)
+    model.to(device)
+    pre_train_model(model, train_loader, dim_z, alpha, beta, device, pretrain_epoch, lr_pretrain)
 
     # init optimizers for training
     optimizer_encoder = torch.optim.Adam(model.encoder.parameters(), lr=lr)
@@ -195,4 +199,4 @@ if __name__ == '__main__':
           optimizer_prior_generator, optimizer_z_discriminator, optimizer_utility_discriminator)
 
     # test
-    test(model, test_loader)
+    tst(model, test_loader)

@@ -15,8 +15,9 @@ train_images = train_data.data.numpy()
 test_images = test_data.data.numpy()
 
 # add color channels
-x_train = np.zeros((train_images.shape[0], train_images.shape[1], train_images.shape[2], 3), dtype=np.uint8)
-x_test = np.zeros((test_images.shape[0], test_images.shape[1], test_images.shape[2], 3), dtype=np.uint8)
+# [batch_size, color, height, width]
+x_train = np.zeros((train_images.shape[0], 3, train_images.shape[1], train_images.shape[2]), dtype=np.uint8)
+x_test = np.zeros((test_images.shape[0], 3, test_images.shape[1], test_images.shape[2]), dtype=np.uint8)
 
 # color labels: sensitivity
 s_train = np.zeros(train_images.shape[0], dtype=np.uint8)
@@ -30,9 +31,12 @@ def assign_color_channels(data, color_labels):
     num_samples = data.shape[0]
     idx = np.random.permutation(num_samples)
     split = num_samples // 3
-    data[idx[:split], :, :, 0] = data[idx[:split]]
-    data[idx[split:2*split], :, :, 1] = data[idx[split:2*split]]
-    data[idx[2*split:], :, :, 2] = data[idx[2*split:]]
+    # red
+    data[idx[:split], 0, :, :] = data[idx[:split], 0, :, :]
+    # green
+    data[idx[split:2*split], 1, :, :] = data[idx[split:2*split], 1, :, :]
+    # blue
+    data[idx[2*split:], 2, :, :] = data[idx[2*split:], 2, :, :]
     color_labels[idx[:split]] = 0
     color_labels[idx[split:2*split]] = 1
     color_labels[idx[2*split:]] = 2

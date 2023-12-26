@@ -5,7 +5,7 @@ import torch.nn as nn
 from layer_utils import kl_div_for_gaussian
 
 
-def pre_train_model(model, train_loader, dim_z, alpha, beta, pretrain_epoch=20, learning_rate=0.001):
+def pre_train_model(model, train_loader, dim_z, alpha, beta, device, pretrain_epoch=20, learning_rate=0.001):
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     reconstruction_criterion = nn.MSELoss()
     utility_criterion = nn.CrossEntropyLoss()
@@ -18,6 +18,7 @@ def pre_train_model(model, train_loader, dim_z, alpha, beta, pretrain_epoch=20, 
         model.train()
         for epoch in range(pretrain_epoch):
             for x_batch, u_batch, s_batch in train_loader:
+                x_batch, u_batch, s_batch = x_batch.to(device), u_batch.to(device), s_batch.to(device)
                 optimizer.zero_grad()
 
                 z_mean, z_log_sigma_sq = model.encoder(x_batch)
@@ -40,3 +41,4 @@ def pre_train_model(model, train_loader, dim_z, alpha, beta, pretrain_epoch=20, 
     else:
         print(f"Loading model from file with {info_str}")
         model.load_state_dict(torch.load(model_path))
+        model.to(device)

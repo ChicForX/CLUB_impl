@@ -36,51 +36,34 @@ class ZDiscriminator(nn.Module):
 
 # encoder, p_phi(z|x)
 class Encoder(nn.Module):
-    def __init__(self, dim_z, img_dim):
+    def __init__(self, dim_z, dim_img):
         super(Encoder, self).__init__()
-        # Define the architecture
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=2, padding=1)
         self.bn1 = nn.BatchNorm2d(16)
         self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1)
         self.bn2 = nn.BatchNorm2d(32)
         self.conv3 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1)
         self.bn3 = nn.BatchNorm2d(64)
-        self.conv4 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1)
-        self.bn4 = nn.BatchNorm2d(128)
-        self.conv5 = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1)
-        self.bn5 = nn.BatchNorm2d(256)
 
-        self.flat_size = self._get_conv_output(img_dim)
-        self.fc1 = nn.Linear(self.flat_size, dim_z * 4)
-        self.fc_bn1 = nn.BatchNorm1d(dim_z * 4)
+        # output of conv
+        self.flat_size = 64 * 4 * 4  # [28 / (2 * 2 * 2)] round up
 
-        # mean & sigma of approximate posterior distribution
+        self.fc = nn.Linear(self.flat_size, dim_z * 4)
+        self.fc_bn = nn.BatchNorm1d(dim_z * 4)
+
         self.fc_mean = nn.Linear(dim_z * 4, dim_z)
         self.fc_log_sigma = nn.Linear(dim_z * 4, dim_z)
 
-    def _get_conv_output(self, shape):
-        bs = 1
-        input = torch.autograd.Variable(torch.rand(bs, 3, shape, shape))
-        output_feat = self._forward_features(input)
-        n_size = output_feat.data.view(bs, -1).size(1)
-        return n_size
-
-    def _forward_features(self, x):
+    def forward(self, x):
         x = F.leaky_relu(self.bn1(self.conv1(x)))
         x = F.leaky_relu(self.bn2(self.conv2(x)))
         x = F.leaky_relu(self.bn3(self.conv3(x)))
-        x = F.leaky_relu(self.bn4(self.conv4(x)))
-        x = F.leaky_relu(self.bn5(self.conv5(x)))
-        return x
-
-    def forward(self, x):
-        x = self._forward_features(x)
-        x = x.view(x.size(0), -1)  # Flatten
-        x = F.tanh(self.fc_bn1(self.fc1(x)))
+        x = torch.flatten(x, 1)
+        x = F.leaky_relu(self.fc_bn(self.fc(x)))
 
         z_mean = self.fc_mean(x)
         z_log_sigma_sq = self.fc_log_sigma(x)
-        return self, z_mean, z_log_sigma_sq
+        return z_mean, z_log_sigma_sq
 
 # utility decoder, p_theta(u|z)
 class UtilityDecoder(nn.Module):
@@ -101,19 +84,16 @@ class UtilityDecoder(nn.Module):
 class UncertaintyDecoder(nn.Module):
     def __init__(self, DIM_Z, DIM_S):
         super(UncertaintyDecoder, self).__init__()
-
-        stride = 2
-        padding = 2
-
         self.fc = nn.Linear(DIM_Z + DIM_S, 7 * 7 * 128)
         self.bn1 = nn.BatchNorm1d(7 * 7 * 128)
-        self.deconv1 = nn.ConvTranspose2d(128, 64, kernel_size=5, stride=stride, padding=padding)
+        self.deconv1 = nn.ConvTranspose2d(128, 64, kernel_size=5, stride=2, padding=2)
         self.bn2 = nn.BatchNorm2d(64)
-        self.deconv2 = nn.ConvTranspose2d(64, 3, kernel_size=5, stride=stride, padding=padding)
-
+        self.deconv2 = nn.ConvTranspose2d(64, 3, kernel_size=6, stride=2, padding=1)
     def forward(self, z, s):
+        # Expand the dimensions of s to match the second dimension of z
+        s_expanded = s.unsqueeze(1)
         # concat z, s
-        z_with_s = torch.cat([z, s], dim=1)
+        z_with_s = torch.cat([z, s_expanded], dim=1)
 
         x = F.leaky_relu(self.bn1(self.fc(z_with_s)))
         x = x.view(-1, 128, 7, 7)    # reshape x for conv

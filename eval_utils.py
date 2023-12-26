@@ -14,7 +14,7 @@ def cal_accuracy(y_pred, y):
 
 
 # sensitivity evaluator
-def train_s_evaluator(model, train_loader, test_loader, dim_img, dim_s):
+def train_s_evaluator(model, train_loader, test_loader):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     criterion = torch.nn.MSELoss()
 
