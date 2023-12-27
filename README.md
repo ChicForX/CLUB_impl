@@ -1,4 +1,4 @@
-# Implement of CLUB
+# Implementation of CLUB
 
 ## Reference
 
