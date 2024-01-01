@@ -2,6 +2,7 @@ import torch
 from torchvision import datasets, transforms
 import numpy as np
 from config import config_dict
+from eval_utils import show_mnist_images
 
 batch_size = config_dict['batch_size']
 
@@ -30,22 +31,30 @@ s_test = np.zeros(test_images.shape[0], dtype=np.uint8)
 u_train = train_data.targets.numpy()
 u_test = test_data.targets.numpy()
 
-def assign_color_channels(data, color_labels):
-    num_samples = data.shape[0]
+
+def assign_color_channels(x_data, original_data, color_labels):
+    num_samples = x_data.shape[0]
     idx = np.random.permutation(num_samples)
     split = num_samples // 3
-    # red
-    data[idx[:split], 0, :, :] = data[idx[:split], 0, :, :]
-    # green
-    data[idx[split:2*split], 1, :, :] = data[idx[split:2*split], 1, :, :]
-    # blue
-    data[idx[2*split:], 2, :, :] = data[idx[2*split:], 2, :, :]
-    color_labels[idx[:split]] = 0
-    color_labels[idx[split:2*split]] = 1
-    color_labels[idx[2*split:]] = 2
 
-assign_color_channels(x_train, s_train)
-assign_color_channels(x_test, s_test)
+    # float type for color
+    x_data = x_data.astype(np.float32)
+
+    for i in range(split):
+        x_data[idx[i], 0, :, :] = original_data[idx[i]]  # red
+        color_labels[idx[i]] = 0
+    for i in range(split, 2 * split):
+        x_data[idx[i], 1, :, :] = original_data[idx[i]]  # green
+        color_labels[idx[i]] = 1
+    for i in range(2 * split, num_samples):
+        x_data[idx[i], 2, :, :] = original_data[idx[i]]  # blue
+        color_labels[idx[i]] = 2
+
+    x_data /= 255.0
+    return x_data, color_labels
+
+x_train, s_train = assign_color_channels(x_train, train_images, s_train)
+x_test, s_test = assign_color_channels(x_test, test_images, s_test)
 
 # numpy to tensor
 x_train_tensor = torch.tensor(x_train, dtype=torch.float32)
@@ -62,3 +71,6 @@ test_dataset = torch.utils.data.TensorDataset(x_test_tensor, u_test_tensor, s_te
 # data loader
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+# draw origin data
+#show_mnist_images(test_loader)

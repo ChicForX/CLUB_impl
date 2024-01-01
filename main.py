@@ -126,12 +126,12 @@ def tst(model, test_loader):
     model.eval()
 
     # train s evaluator
-    s_evaluator = S_Evaluator(dim_img, dim_s)
-    eval.train_s_evaluator(s_evaluator, train_loader, test_loader)
+    s_evaluator = S_Evaluator(dim_img, dim_s).to(device)
+    eval.train_s_evaluator(s_evaluator, train_loader, test_loader, device)
 
     # train MINE
-    mine = MINE(dim_z, dim_u)
-    eval.train_mine(model, mine, test_loader, mi_epochs)
+    mine = MINE().to(device)
+    eval.train_mine(model, mine, test_loader, mi_epochs, device)
 
     with torch.no_grad():
         total_utility_acc = 0
