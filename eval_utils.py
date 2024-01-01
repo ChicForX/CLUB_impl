@@ -97,12 +97,13 @@ def train_mine(model, mine, train_loader, epochs, device):
         print(f"Epoch {epoch}, MI Estimate: {-total_loss / len(train_loader)}")
 
 
-# save img by 5*5
-def save_images(x_hat, filename, nrow=5, ncol=5):
+# save original & reconst imgs
+def save_images(x, x_hat, filename, nrow=5, ncol=5):
+    x = x[:nrow * ncol]
     x_hat = x_hat[:nrow * ncol]
-
-    x_hat = x_hat.cpu().detach()
-    grid = torchvision.utils.make_grid(x_hat, nrow=nrow)
+    x_concat = torch.cat([x, x_hat], dim=3)
+    x_concat = x_concat.cpu().detach()
+    grid = torchvision.utils.make_grid(x_concat, nrow=nrow)
 
     ndarr = grid.mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
     im = transforms.ToPILImage()(ndarr)

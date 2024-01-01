@@ -26,15 +26,14 @@ def pre_train_model(model, train_loader, dim_z, alpha, beta, device, pretrain_ep
 
                 reconstruction_loss = reconstruction_criterion(x_hat, x_batch)
                 u_loss = utility_loss(u_hat, u_batch)
-                kl_loss = kl_div_for_gaussian(z_mean, z_log_sigma_sq)
+                kl_loss = 0.1 * kl_div_for_gaussian(z_mean, z_log_sigma_sq)
 
                 total_loss = reconstruction_loss + u_loss + alpha * kl_loss
 
                 total_loss.backward()
                 optimizer.step()
 
-            if epoch % 10 == 0:
-                print(f"Epoch {epoch}: Loss {total_loss.item()}")
+            print(f"Epoch {epoch}: KL Loss  {kl_loss.item()}, Recon Loss  {reconstruction_loss.item()}, Util Loss  {u_loss.item()}")
 
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
         torch.save(model.state_dict(), model_path)

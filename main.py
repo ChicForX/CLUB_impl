@@ -8,6 +8,7 @@ from s_evaluator import S_Evaluator
 from pretrain import pre_train_model
 import eval_utils as eval
 from mine import MINE
+import os
 
 # hyperparams
 lr = config_dict['lr']
@@ -31,6 +32,8 @@ batch_size = config_dict['batch_size']
 def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncertainty_decoder,
           optimizer_prior_generator, optimizer_z_discriminator, optimizer_utility_discriminator):
     for epoch in range(epochs):
+        model.train()
+
         for i, (x, u, s) in enumerate(train_loader):  # imgs, class, colors
             x, u, s = x.to(device), u.to(device), s.to(device)
 
@@ -48,7 +51,7 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
             reconstruction_loss = rec_loss(x, x_obf)
             u_loss = utility_loss(u_utility, u)
             kl_loss = kl_div_for_gaussian(z_mean, z_log_sigma_sq)
-            total_loss_1 = reconstruction_loss + u_loss + alpha * kl_loss
+            total_loss_1 = alpha * reconstruction_loss + u_loss + kl_loss
 
             total_loss_1.backward()
             optimizer_encoder.step()
@@ -113,12 +116,20 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
             optimizer_prior_generator.step()
             optimizer_utility_decoder.step()
 
+            print(total_loss_2)
             print(f"Epoch {epoch + 1}/{epochs} - "
                   f"Enc Loss: {total_loss_1:.4f}, "
                   f"Util Dec Loss: {total_loss_2:.4f}, "
                   f"Uncert Dec Loss: {total_loss_3:.4f}, "
                   f"Prior Gen Loss: {total_loss_4:.4f}, "
                   f"Util Disc Loss: {total_loss_5:.4f}")
+
+        model.eval()
+        with torch.no_grad():
+            if not os.path.exists(eval_path):
+                os.makedirs(eval_path, exist_ok=True)
+            # save imgs of each epoch
+            eval.save_images(x_obf, filename=f"{eval_path}reconst-{epoch + 1}.png")
 
 
 # test
@@ -159,13 +170,13 @@ def tst(model, test_loader):
 
             # mutual information
             # s & z
-            total_mi_s_z += mine(z_test, s).mean().item()
+            total_mi_s_z += mine.get_mi(z_test, s).mean().item()
             # u & z
-            total_mi_u_z += mine(z_test, u).mean().item()
+            total_mi_u_z += mine.get_mi(z_test, u).mean().item()
 
 
         # save imgs
-        filename = f"{eval_path}_output.png"
+        filename = f"{eval_path}tst_output.png"
         eval.save_images(x_hat, filename)
 
         avg_utility_acc = total_utility_acc / len(test_loader)
