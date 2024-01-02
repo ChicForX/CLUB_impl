@@ -187,7 +187,7 @@ def tst(model, test_loader):
 
         print(f"Utility Accuracy: {avg_utility_acc}")
         print(f"Sensitivity Accuracy: {avg_sensitivity_acc}")
-        print(f"Mean Absolote Error: {avg_sensitivity_mae}")
+        print(f"Mean Absolute Error: {avg_sensitivity_mae}")
         print(f"Mutual Information of s & z: {avg_mi_s_z}")
         print(f"Mutual Information of u & z: {avg_mi_u_z}")
 

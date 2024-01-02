@@ -1,5 +1,5 @@
 config_dict = {
-    "lr": 1e-4,
+    "lr": 8e-5,
     "dim_img": 28,
     "dim_noise": 30,
     "dim_s": 1,
@@ -8,7 +8,7 @@ config_dict = {
     "epochs": 20,
     "alpha": 0.1,
     "beta": 1e-4,
-    "pretrain_epoch": 20,
+    "pretrain_epoch": 30,
     "lr_pretrain": 5e-4,
     "eval_path": "eval_figures/",
     "mi_epochs": 20,
