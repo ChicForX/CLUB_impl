@@ -51,7 +51,7 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
             reconstruction_loss = rec_loss(x, x_obf)
             u_loss = utility_loss(u_utility, u)
             kl_loss = kl_div_for_gaussian(z_mean, z_log_sigma_sq)
-            total_loss_1 = alpha * reconstruction_loss + u_loss + kl_loss
+            total_loss_1 = reconstruction_loss + u_loss + alpha * kl_loss
 
             total_loss_1.backward()
             optimizer_encoder.step()
@@ -116,7 +116,6 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
             optimizer_prior_generator.step()
             optimizer_utility_decoder.step()
 
-            print(total_loss_2)
             print(f"Epoch {epoch + 1}/{epochs} - "
                   f"Enc Loss: {total_loss_1:.4f}, "
                   f"Util Dec Loss: {total_loss_2:.4f}, "
@@ -129,7 +128,7 @@ def train(model, optimizer_encoder, optimizer_utility_decoder, optimizer_uncerta
             if not os.path.exists(eval_path):
                 os.makedirs(eval_path, exist_ok=True)
             # save imgs of each epoch
-            eval.save_images(x_obf, filename=f"{eval_path}reconst-{epoch + 1}.png")
+            eval.save_images(x, x_obf, filename=f"{eval_path}reconst-{epoch + 1}.png")
 
 
 # test
@@ -170,14 +169,15 @@ def tst(model, test_loader):
 
             # mutual information
             # s & z
-            total_mi_s_z += mine.get_mi(z_test, s).mean().item()
+            total_mi_s_z += mine.get_mi(z_test, s)
             # u & z
-            total_mi_u_z += mine.get_mi(z_test, u).mean().item()
+            total_mi_u_z += mine.get_mi(z_test, u)
 
 
         # save imgs
-        filename = f"{eval_path}tst_output.png"
-        eval.save_images(x_hat, filename)
+        eval.save_images(x, x_hat, filename=f"{eval_path}tst_output.png")
+
+        eval.obs_reconstruction(x, s, model, filename=f"{eval_path}tst_obs_channel_reconst_epoch1.png", channel=0)
 
         avg_utility_acc = total_utility_acc / len(test_loader)
         avg_sensitivity_acc = total_sensitivity_acc / len(test_loader)

@@ -8,7 +8,7 @@ config_dict = {
     "epochs": 20,
     "alpha": 0.1,
     "beta": 1e-4,
-    "pretrain_epoch": 50,
+    "pretrain_epoch": 20,
     "lr_pretrain": 5e-4,
     "eval_path": "eval_figures/",
     "mi_epochs": 20,

@@ -4,6 +4,7 @@ import torchvision.transforms as transforms
 import os
 import matplotlib.pyplot as plt
 from config import config_dict
+from layer_utils import reparameterize
 
 model_path = config_dict['model_path']
 def show_mnist_images(loader):
@@ -108,3 +109,19 @@ def save_images(x, x_hat, filename, nrow=5, ncol=5):
     ndarr = grid.mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
     im = transforms.ToPILImage()(ndarr)
     im.save(filename)
+
+def obs_reconstruction(x_batch, s_batch, model, filename, channel):
+    const_like_s = torch.full_like(s_batch, channel)
+
+    z_mean, z_log_sigma_sq = model.encoder(x_batch)
+    z = reparameterize(z_mean, z_log_sigma_sq)
+    x_obf = model.uncertainty_decoder(z, const_like_s)
+
+    x_concat = torch.cat([x_batch, x_obf], dim=3)
+    x_concat = x_concat.cpu().detach()
+    grid = torchvision.utils.make_grid(x_concat, nrow=4)
+
+    ndarr = grid.mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
+    im = transforms.ToPILImage()(ndarr)
+    im.save(filename)
+
